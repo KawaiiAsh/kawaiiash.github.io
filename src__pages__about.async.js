@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunk=self.webpackChunk||[]).push([[2912],{36390:function(u,t,s){s.r(t),s.d(t,{default:function(){return n}});var e=s(52676);function n(){return(0,e.jsxs)("div",{children:[(0,e.jsx)("h2",{children:"This is About page"}),(0,e.jsxs)("p",{children:["To get started, edit ",(0,e.jsx)("code",{children:"pages/about.tsx"})," and save to reload."]})]})}}}]);
