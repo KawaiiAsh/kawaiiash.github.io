@@ -1,29 +1,189 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-<meta http-equiv="X-UA-Compatible" content="ie=edge">
-<link rel="stylesheet" href="/umi.css">
+    <meta charset="UTF-8">
+    <title>WG Logger 日志查看器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+        th {
+            background: #fafafa;
+        }
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            background: #ff6f3c;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #ccc;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+    </style>
 </head>
+
 <body>
-<div id="root"></div>
-<script src="/umi.js"></script>
+<div class="container">
+    <h2>WG Logger 日志查看器</h2>
+
+    <div class="search-box">
+        <input type="text" id="keyword" placeholder="输入关键字搜索日志内容…">
+        <button onclick="search()">搜索</button>
+    </div>
+
+    <table>
+        <thead>
+        <tr>
+            <th style="width:80px;">ID</th>
+            <th>消息内容</th>
+            <th style="width:160px;">时间</th>
+        </tr>
+        </thead>
+        <tbody id="logTable"></tbody>
+    </table>
+
+    <div class="pagination">
+        <button id="prevBtn" onclick="prevPage()">上一页</button>
+        <button id="nextBtn" onclick="nextPage()">下一页</button>
+    </div>
+</div>
+
 <script>
-      (function(m, ei, q, i, a, j, s) {
-          m[i] = m[i] || function() {
-              (m[i].a = m[i].a || []).push(arguments)
-          };
-          j = ei.createElement(q),
-              s = ei.getElementsByTagName(q)[0];
-          j.async = true;
-          j.charset = 'UTF-8';
-          j.src = 'https://static.meiqia.com/dist/meiqia.js';
-          s.parentNode.insertBefore(j, s);
-      })(window, document, 'script', '_MEIQIA');
-      _MEIQIA('entId', 'a791972c4d1a455e870b2a2c28a5d86a');
-      // 在这里开启手动模式（必须紧跟美洽的嵌入代码）
-      _MEIQIA('withoutBtn');
-    </script>
+    let page = 0;
+    const size = 20;
+    let totalPages = 1;
+    let mode = "list";   // list or search
+    let lastKeyword = "";
+
+    const BASE = "https://api.20021005.sbs/wg";
+
+    async function loadList() {
+        mode = "list";
+        const url = `${BASE}/list?page=${page}&size=${size}`;
+        await fetchData(url);
+    }
+
+    async function search() {
+        page = 0;
+        mode = "search";
+        lastKeyword = document.getElementById("keyword").value.trim();
+
+        if (!lastKeyword) {
+            return loadList();
+        }
+
+        const url = `${BASE}/search?keyword=${encodeURIComponent(lastKeyword)}&page=${page}&size=${size}`;
+        await fetchData(url);
+    }
+
+    async function fetchData(url) {
+        try {
+            const res = await fetch(url);
+            if (!res.ok) {
+                alert("请求失败: " + res.status);
+                return;
+            }
+
+            const json = await res.json();
+            const logs = json.content;
+
+            totalPages = json.totalPages;
+            page = json.number;
+
+            renderTable(logs);
+            updateButtons();
+        } catch (e) {
+            console.error(e);
+            alert("无法获取数据，请检查 API 是否正常。");
+        }
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById("logTable");
+        tbody.innerHTML = "";
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:#888;">无日志</td></tr>`;
+            return;
+        }
+
+        data.forEach(item => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${item.id}</td>
+                <td>${item.msg}</td>
+                <td>${item.createTime || ""}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function prevPage() {
+        if (page > 0) {
+            page--;
+            reload();
+        }
+    }
+
+    function nextPage() {
+        if (page < totalPages - 1) {
+            page++;
+            reload();
+        }
+    }
+
+    function reload() {
+        if (mode === "list") {
+            loadList();
+        } else {
+            search();
+        }
+    }
+
+    function updateButtons() {
+        document.getElementById("prevBtn").disabled = page <= 0;
+        document.getElementById("nextBtn").disabled = page >= totalPages - 1;
+    }
+
+    loadList();
+</script>
 </body>
 </html>
